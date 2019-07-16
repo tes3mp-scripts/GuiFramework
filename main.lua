@@ -10,10 +10,8 @@ local TYPES = tableHelper.enum({
 
 GuiFramework.nameCache = {}
 GuiFramework.typeCache = {}
-
 GuiFramework.callbackCache = {}
-
-GuiFramework.dataCache = {}
+GuiFramework.returnCache = {}
 
 function GuiFramework.getGuiId(name)
     local id = guiHelper.ID[name]
@@ -34,15 +32,12 @@ function GuiFramework.MessageBox(pid, name, label)
     tes3mp.MessageBox(pid, id, label)
 end
 
-function GuiFramework.CustomMessageBox(pid, name, label, buttons, callback)
+function GuiFramework.CustomMessageBox(pid, name, label, buttons, callback, returnValues)
     local id = GuiFramework.getGuiId(name)
     GuiFramework.nameCache[id] = name
     GuiFramework.typeCache[id] = TYPES.CustomMessageBox
     GuiFramework.callbackCache[id] = callback
-    GuiFramework.dataCache[pid] = {
-        label = label,
-        buttons = buttons
-    }
+    GuiFramework.returnCache[pid] = returnValues or buttons
 
     tes3mp.CustomMessageBox(pid, id, label, table.concat(buttons, ";"))
 end
@@ -52,18 +47,9 @@ function GuiFramework.InputDialog(pid, name, label, note, callback)
     GuiFramework.nameCache[id] = name
     GuiFramework.typeCache[id] = TYPES.InputDialog
     GuiFramework.callbackCache[id] = callback
-    GuiFramework.dataCache[pid] = {
-        label = label,
-        note = note
-    }
 
-    if note == nil then
-        note = ''
-    end
-
-    if label == nil then
-        label = ''
-    end
+    note = note or ''
+    label = label or ''
 
     tes3mp.InputDialog(pid, id, label, note)
 end
@@ -73,31 +59,19 @@ function GuiFramework.PasswordDialog(pid, name, label, note, callback)
     GuiFramework.nameCache[id] = name
     GuiFramework.typeCache[id] = TYPES.PasswordDialog
     GuiFramework.callbackCache[id] = callback
-    GuiFramework.dataCache[pid] = {
-        label = label,
-        note = note
-    }
 
-    if note == nil then
-        note = ''
-    end
-
-    if label == nil then
-        label = ''
-    end
+    note = note or ''
+    label = label or ''
 
     tes3mp.PasswordDialog(pid, id, label, note)
 end
 
-function GuiFramework.ListBox(pid, name, label, rows, callback)
+function GuiFramework.ListBox(pid, name, label, rows, callback, returnValues)
     local id = GuiFramework.getGuiId(name)
     GuiFramework.nameCache[id] = name
     GuiFramework.typeCache[id] = TYPES.ListBox
     GuiFramework.callbackCache[id] = callback
-    GuiFramework.dataCache[pid] = {
-        label = label,
-        rows = rows
-    }
+    GuiFramework.returnCache[pid] = returnValues or rows
 
     local items = table.concat(rows,"\n")
 
@@ -111,15 +85,9 @@ function GuiFramework.OnGUIAction(evenStatus, pid, id, data)
         local name = GuiFramework.nameCache[id]
         local type = GuiFramework.typeCache[id]
 
-        if type == TYPES.ListBox then
+        if type == TYPES.CustomMessageBox then
             local input = tonumber(data) + 1
-            local value = GuiFramework.dataCache[pid].rows[input]
-
-            callback(pid, name, input, value)
-
-        elseif type == TYPES.CustomMessageBox then
-            local input = tonumber(data) + 1
-            local value = GuiFramework.dataCache[pid].buttons[input]
+            local value = GuiFramework.returnCache[pid][input]
 
             callback(pid, name, input, value)
 
@@ -128,6 +96,12 @@ function GuiFramework.OnGUIAction(evenStatus, pid, id, data)
 
         elseif type == TYPES.PasswordDialog then
             callback(pid, name, data)
+
+        elseif type == TYPES.ListBox then
+            local input = tonumber(data) + 1
+            local value = GuiFramework.returnCache[pid][input]
+
+            callback(pid, name, input, value)
         end
     end
 end
