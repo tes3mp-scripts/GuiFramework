@@ -12,6 +12,7 @@ GuiFramework.nameCache = {}
 GuiFramework.typeCache = {}
 GuiFramework.callbackCache = {}
 GuiFramework.returnCache = {}
+GuiFramework.parametersCache = {}
 
 function GuiFramework.getGuiId(name)
     local id = guiHelper.ID[name]
@@ -24,58 +25,76 @@ function GuiFramework.getGuiId(name)
     return guiHelper.ID[name]
 end
 
-function GuiFramework.MessageBox(pid, name, label)
-    local id = GuiFramework.getGuiId(name)
-    GuiFramework.nameCache[id] = name
+--pid, name, label
+function GuiFramework.MessageBox(opt)
+    local id = GuiFramework.getGuiId(opt.name)
+    GuiFramework.nameCache[id] = opt.name
     GuiFramework.typeCache[id] = TYPES.MessageBox
 
-    tes3mp.MessageBox(pid, id, label)
+    local label = opt.label or ''
+
+    tes3mp.MessageBox( opt.pid, id, label )
 end
 
-function GuiFramework.CustomMessageBox(pid, name, label, buttons, callback, returnValues)
-    local id = GuiFramework.getGuiId(name)
-    GuiFramework.nameCache[id] = name
+--pid, name, buttons, [label, callback, returnValues, parameters]
+function GuiFramework.CustomMessageBox(opt)
+    local id = GuiFramework.getGuiId(opt.name)
+    GuiFramework.nameCache[id] = opt.name
     GuiFramework.typeCache[id] = TYPES.CustomMessageBox
-    GuiFramework.callbackCache[id] = callback
-    GuiFramework.returnCache[pid] = returnValues or buttons
+    GuiFramework.callbackCache[id] = opt.callback
 
-    tes3mp.CustomMessageBox(pid, id, label, table.concat(buttons, ";"))
+    GuiFramework.returnCache[opt.pid] = opt.returnValues or opt.buttons
+    GuiFramework.parametersCache[opt.pid] = opt.parameters
+
+    local label = opt.label or ''
+
+    tes3mp.CustomMessageBox( opt.pid, id, label, table.concat(opt.buttons, ";") )
 end
 
-function GuiFramework.InputDialog(pid, name, label, note, callback)
-    local id = GuiFramework.getGuiId(name)
-    GuiFramework.nameCache[id] = name
+--pid, name, [label, note, callback, parameters]
+function GuiFramework.InputDialog(opt)
+    local id = GuiFramework.getGuiId(opt.name)
+    GuiFramework.nameCache[id] = opt.name
     GuiFramework.typeCache[id] = TYPES.InputDialog
-    GuiFramework.callbackCache[id] = callback
+    GuiFramework.callbackCache[id] = opt.callback
 
-    note = note or ''
-    label = label or ''
+    GuiFramework.parametersCache[opt.pid] = opt.parameters
 
-    tes3mp.InputDialog(pid, id, label, note)
+    local note = opt.note or ''
+    local label = opt.label or ''
+
+    tes3mp.InputDialog( opt.pid, id, label, note )
 end
 
-function GuiFramework.PasswordDialog(pid, name, label, note, callback)
-    local id = GuiFramework.getGuiId(name)
-    GuiFramework.nameCache[id] = name
+--pid, name, [label, note, callback, parameters]
+function GuiFramework.PasswordDialog(opt)
+    local id = GuiFramework.getGuiId(opt.name)
+    GuiFramework.nameCache[id] = opt.name
     GuiFramework.typeCache[id] = TYPES.PasswordDialog
-    GuiFramework.callbackCache[id] = callback
+    GuiFramework.callbackCache[id] = opt.callback
 
-    note = note or ''
-    label = label or ''
+    GuiFramework.parametersCache[opt.pid] = opt.parameters
 
-    tes3mp.PasswordDialog(pid, id, label, note)
+    local note = opt.note or ''
+    local label = opt.label or ''
+
+    tes3mp.PasswordDialog( opt.pid, id, label, note )
 end
 
-function GuiFramework.ListBox(pid, name, label, rows, callback, returnValues)
-    local id = GuiFramework.getGuiId(name)
-    GuiFramework.nameCache[id] = name
+--pid, name, rows, [label, callback, returnValues, parameters]
+function GuiFramework.ListBox(opt)
+    local id = GuiFramework.getGuiId(opt.name)
+    GuiFramework.nameCache[id] = opt.name
     GuiFramework.typeCache[id] = TYPES.ListBox
-    GuiFramework.callbackCache[id] = callback
-    GuiFramework.returnCache[pid] = returnValues or rows
+    GuiFramework.callbackCache[id] = opt.callback
 
-    local items = table.concat(rows,"\n")
+    GuiFramework.returnCache[opt.pid] = opt.returnValues or opt.rows
+    GuiFramework.parametersCache[opt.pid] = opt.parameters
 
-    tes3mp.ListBox(pid, id, label, items)
+    local label = opt.label or ''
+    local items = table.concat(opt.rows,"\n")
+
+    tes3mp.ListBox( opt.pid, id, label, items )
 end
 
 function GuiFramework.OnGUIAction(evenStatus, pid, id, data)
@@ -89,19 +108,19 @@ function GuiFramework.OnGUIAction(evenStatus, pid, id, data)
             local input = tonumber(data) + 1
             local value = GuiFramework.returnCache[pid][input]
 
-            callback(pid, name, input, value)
+            callback(pid, name, input, value, GuiFramework.parametersCache[pid])
 
         elseif type == TYPES.InputDialog then
-            callback(pid, name, data)
+            callback(pid, name, data, GuiFramework.parametersCache[pid])
 
         elseif type == TYPES.PasswordDialog then
-            callback(pid, name, data)
+            callback(pid, name, data, GuiFramework.parametersCache[pid])
 
         elseif type == TYPES.ListBox then
             local input = tonumber(data) + 1
             local value = GuiFramework.returnCache[pid][input]
 
-            callback(pid, name, input, value)
+            callback(pid, name, input, value, GuiFramework.parametersCache[pid])
         end
     end
 end
